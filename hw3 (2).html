@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        canvas {
+        border:1px solid #000000;
+        background-color: #9ACD32;
+        }
+        </style>
+</head>
+<body onload= "snakeGame()">
+    <script>
+        var snake;
+        var target;
+        var removeCls = true;
+        var classes = [101,114,160,161,214,215,216,220,300,303,306,307,310,311,312,316,320,327,334,337,351,352,354,371,373,376,380,385,416,506,512,526,527,532,540,541,544,545,548,550,555,564,566,600,645];
+        var body = [];
+        var prevKey;
+        function snakeGame() {
+            snake = new snakeBody(360, 210, 30, 30, "black");
+            target = new snakeBody(0, 0, 30, 30, "red");
+            
+            snake.randomSpot(target);
+            body.push([snake.x, snake.y]);
+            gameBoard.start();
+            target.updateTarget(true);
+        }
+        //game board
+        var gameBoard = {
+            canvas : document.createElement("canvas"),
+            start : function(){
+                this.context = this.canvas.getContext("2d");
+                this.canvas.width = 720;
+                this.canvas.height = 420; //this = gameboard, gameboard.canvas.height...
+                document.body.insertBefore(this.canvas, document.body.childNodes[0]); //insert canvas as the body's node
+                this.interval = setInterval(moving, 500); //calling refreash every 500ms or 0.5s
+                window.addEventListener("keydown", function(event){  //if keys press down, get keycode
+                
+                    //if(prevKey == 0){
+                      //  gameBoard.press = event.keyCode;
+                        //prevKey == gameBoard.press;
+                   // }
+                    //else{//let prev = 38
+                        if((Math.abs(prevKey-(event.keyCode))==2)&&body.length>1){ //either left&right or up&down
+                            gameBoard.press = prevKey; }//contiune press to be prev key
+                        else{//different key
+                        gameBoard.press = event.keyCode;
+                        prevKey = gameBoard.press;
+                        }
+                    //}
+                   
+                })
+            },
+            empty: function(){
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height); //clear the canvas
+          //  },
+           // eat: function(x,y){
+                //clearInterval(this.interval); //stop moving and refreash
+                //alert("eaten!");
+                //this.new = new snakeBody(x, y, 15, 20, "black");
+            },
+            lose: function(){
+                clearInterval(this.interval); //stop moving and refreash
+                alert("You lose ㅠㅠ \nRefresh page to replay!");
+            },
+            win: function(){
+                clearInterval(this.interval); //stop moving and refreash
+                alert("You Win! \nRefresh page to replay!");
+            },
+
+        }
+
+        function snakeBody(x, y, width, height, bodyColor){
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+            this.changeX = 0;
+            this.changeY = 0;
+            this.label = null;
+
+            this.updateSnake = function(){  //update snake as it clear canvas
+                conText = gameBoard.context;
+                conText.fillStyle = bodyColor;
+                conText.fillRect(this.x, this.y, this.width, this.height);
+            };
+
+            this.updateTarget = function(newCls){
+                if(classes.length == 0){ return;}
+                conText = gameBoard.context;
+                conText.fillStyle = bodyColor;
+                conText.fillRect(this.x, this.y, this.width, this.height);
+                //ctx.fillStyle="black";
+                //ctx.fillRect(10,10,50,50);
+                conText.fillStyle = "white";
+                conText.font = "xx-small";
+                conText.textAlign="center"; 
+                if(newCls == true){
+                    var i = Math.floor(Math.random() * classes.length);
+                    this.label = classes[i];
+                    classes.splice(i, 1); 
+
+                }
+                conText.fillText(this.label, (this.x+15), (this.y+15));
+            }
+
+            this.postion = function() {  //update new snake postion as x and y change
+                this.x += this.changeX;
+                this.y += this.changeY;
+                body.push([this.x, this.y]);
+                
+                var hit = this.onSnake(this.x, this.y, body.length-1);
+                if( hit == true){
+                    gameBoard.lose();
+                }
+                return hit; 
+            };
+
+            this.onSnake = function(x, y, len){
+                var hit = false;
+                for(i=0; i<len;i++){//see if it hit itself
+                    if((x == body[i][0]) && (y == body[i][1])) {
+                        document.getElementById("demo").innerHTML = "onsnake";
+                        hit = true;
+                    }
+                }
+                return hit;
+            };
+
+            this.collideBoarder = function(){ //detect hitting game boarder
+                var snakeHead = body[(body.length)-1];
+                var hitBoarder = false;
+                var bottom = snakeHead[1] + this.height;
+                var right = snakeHead[0] + this.width;
+                if((snakeHead[0] < 0) || (snakeHead[1] < 0) || (bottom > 420) || (right > 720)){
+                    document.getElementById("demo1").innerHTML = "boarder";
+                    gameBoard.lose();
+                    hitBoarder = true;
+                }
+                return hitBoarder;
+            };
+            
+            this.empty = function(hit, target, hitBoarder){
+                if(hit == false && !((this.x == target.x) && (this.y == target.y))&& hitBoarder == false){ //did not hit itself & not eat target
+                    var tail = body.shift();
+                    gameBoard.context.clearRect(tail[0], tail[1], this.width, this.height); //clear tail
+                    removeCls = false;
+                }
+                if ((this.x == target.x) && (this.y == target.y)) { //if target is eaten
+                  gameBoard.context.clearRect(target.x, target.y, target.width, target.height);
+                  if(classes.length == 0){gameBoard.win(); return;}//target disappear
+                  this.randomSpot(target); //change target spot
+                  }
+                  
+                    //randommly develop a new taget in location that is in gameBorad and snakeBody
+
+                
+            };
+            
+
+            this.randomSpot = function(target){
+                var newSpot = false;
+                  while(newSpot == false){
+                  var newX = Math.floor(Math.random() * (gameBoard.canvas.width/target.width))*target.width;
+                  var newY = Math.floor(Math.random() * (gameBoard.canvas.height/target.height))*target.height;
+                  //document.getElementById("demo").innerHTML = newX;
+                  if(this.onSnake(newX, newY, body.length) == false){ newSpot = true;}
+                  target.x = newX;
+                  target.y = newY;
+                  removeCls = true;
+                  }
+            
+            };
+            this.randomCls = function(eaten){
+                if(eaten == true){
+                    var clsName = classes[Math.floor(Math.random() * classes.length)];
+                }
+                else{clsName = this.label;}
+                return clsName;
+            };
+          //  },
+        }
+        
+
+        function moving(){
+            var press = false;
+            //update the x and y 
+            if(gameBoard.press == 38){
+              
+                snake.changeX = 0;
+                snake.changeY = -snake.height; //move up
+                press = true;
+            }
+            if(gameBoard.press == 40){
+              
+                snake.changeX = 0;
+                snake.changeY = snake.height; // move down 
+                press = true;
+            }
+            if(gameBoard.press == 37){
+               
+                snake.changeX = -snake.width;
+                snake.changeY = 0; //move left
+                press = true;
+            }
+            if(gameBoard.press == 39){
+                snake.changeX = snake.width;
+                snake.changeY = 0; // move right 
+                press = true;
+            }
+            
+            if(press == true){
+            //
+            //target.updateSnake();
+           
+                //snake.empty();
+            var hit = snake.postion(); //update the position of the snake
+            var hitBoarder = snake.collideBoarder();
+
+            snake.empty(hit, target, hitBoarder);
+            //snake.updateSnake(); //refill the snake
+            
+            
+            target.updateTarget(removeCls);
+            
+            }
+            snake.updateSnake(); //refill the snake
+            //snake.eatTarget(target);
+        }
+        </script>
+
+<p id="demo"></p>
+<p id="demo1"></p>
+</body>
+</html>
